@@ -56,22 +56,16 @@ public class MainActivity extends Activity implements OnBazaarResponse {
 		 * BazaarRequest will be used to make our API calls. The parameters are set in the BVReviewBrowsingApplication class
 		 */
 		request = new BazaarRequest(BVReviewBrowsingApplication.domain, BVReviewBrowsingApplication.passKey, BVReviewBrowsingApplication.apiVersion);
-		params = new DisplayParams();
-		params.setLimit(batchSize);
 		
 		/*
 		 * Get all the top level categories and sort on their name
 		 */
-		params.addFilter("ParentId", Equality.EQUAL, "null");
-		params.addSort("Name", true);
+		//params.addFilter("ParentId", Equality.EQUAL, new String[]{"600610","600630"});
 		
 		/*
 		 * This request will get first 100
 		 */
-		request.sendDisplayRequest(RequestType.CATEGORIES, params, this);
-		
-		
-		
+		request.sendDisplayRequest(RequestType.CATEGORIES, params, this);		
 		
 	}
 
@@ -118,7 +112,7 @@ public class MainActivity extends Activity implements OnBazaarResponse {
 						}
 						
 						itemsToProcess = json.getJSONArray("Results");
-						parseAndDisplayItems();
+						parseTopCategories();
 						
 					}
 				} catch (JSONException e) {
@@ -129,39 +123,49 @@ public class MainActivity extends Activity implements OnBazaarResponse {
 		});
 	}
 	
-	private void parseAndDisplayItems() {
+	private void parseTopCategories() {
 		/*
 		 * Loop to get all the categories and dump them into our map
 		 */
-		Log.e(TAG, "initialItemCount = " + initialItemCount);
-		int itemNum;
-		for (int i = 0; i < initialItemCount; i++) {
-			itemNum = i % batchSize;
-			Log.e(TAG, "itemNum = " + itemNum);
-			if (itemNum < itemsToProcess.length()) {
-				try {
-					Log.e(TAG, "item name = " + itemsToProcess.getJSONObject(itemNum).getString("Name"));
-					allCategories.put(itemsToProcess.getJSONObject(itemNum).getString("Id"), itemsToProcess.getJSONObject(itemNum));
-				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				processedItemCount++;
-			} else if (itemsToProcess.length() == batchSize) {
-				params.setOffset(processedItemCount);
-				request.sendDisplayRequest(RequestType.CATEGORIES, params, this);
-			}
+		params = new DisplayParams();
+		params.setLimit(batchSize);
+		params.addSort("Name", true);
+		params.addFilter("ParentId", Equality.EQUAL, "null");
+		
+		JSONObject currentObj;
+		for (int i = 0; i < itemsToProcess.length(); i++) {
+			try {
+				currentObj = itemsToProcess.getJSONObject(i);					
+				allCategories.put(currentObj.getString("Id"), currentObj);
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}			
+			processedItemCount++;
+		}	
+		
+		if (processedItemCount < initialItemCount) {
+			params.setOffset(processedItemCount);
+			request.sendDisplayRequest(RequestType.CATEGORIES, params, this);
+		} else {
+			
+			params = new DisplayParams();
+			params.setLimit(batchSize);
+			params.addSort("Name", true);
+			params.addFilter("ParentId", Equality.EQUAL, (String[]) allCategories.keySet().toArray());
+			
+			parseNextLevel(params);
 		}
 		
-		Log.e(TAG, "allCategories.size() = " + allCategories.size());
-		
-		StringBuilder displayItems = new StringBuilder();
-		
-		for (String s : allCategories.keySet()) {
-				displayItems.append(s + "\n");
+		Log.e(TAG, "processedItemCount = " + processedItemCount);
+	}
+	
+	
+	private void parseNextLevel(DisplayParams params) {
+		JSONObject currentObj;
+		for (String Id : allCategories.keySet()) {
+
 		}
-		
-		textView.setText(displayItems.toString());
 	}
 
 }
