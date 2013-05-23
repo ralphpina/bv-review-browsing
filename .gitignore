@@ -9,8 +9,10 @@
 *.class
 
 # generated files
-bin/
-gen/
+bin/*
+gen/*
+bin
+gen
 
 # Local configuration file (sdk path, etc)
 local.properties
@@ -18,3 +20,5 @@ local.properties
 # Eclipse project files
 .classpath
 .project
+
+bin/classes.dex
