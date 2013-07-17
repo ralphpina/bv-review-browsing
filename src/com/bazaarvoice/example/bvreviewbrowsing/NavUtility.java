@@ -76,22 +76,23 @@ public class NavUtility {
 	 */
 	private static NavUtility navUtility;
 	
-	public static NavUtility getInstanceOf() {
+	public static NavUtility getInstanceOf(Activity activity) {
 		if (navUtility == null) {
 			navUtility = new NavUtility();
 		}
+		navUtility.activity = activity;
 		return navUtility;
 	}
 	
 	private NavUtility() {
-		productTree = new BVProductTree();
+		productTree = BVProductTree.getInstance();
 		processedItemCount = 0;
 		batchSize = 100;
 		selectionID = null;
 	}
 	
 	
-	public void getChildren() {
+	public void getChildren(BVNode parent) {
 		/*
 		 * Used to make the API calls
 		 */
@@ -111,11 +112,15 @@ public class NavUtility {
 		 */
 		params = new DisplayParams();
 	
+		/*
+		 * Set the currentNode
+		 */
+		productTree.setCurrentNode(parent);
 		
 		/*
 		 * Are we getting the top category
 		 */
-		if (productTree.getRoot() == null) {
+		if (productTree.getCurrentNode() == null) {
 			Id = "null";		
 			requestItemType = RequestType.CATEGORIES;
 			
@@ -206,7 +211,7 @@ public class NavUtility {
 						if (productTree.getCurrentNode().getTypeForNode() == RequestType.CATEGORIES 
 								&& productTree.getCurrentNode().getTypeForChildren() == null) {
 							productTree.getCurrentNode().setTypeForChildren(RequestType.PRODUCTS);
-							getChildren();
+							getChildren(productTree.getCurrentNode());
 						}
 						
 					//go get the children
@@ -217,7 +222,8 @@ public class NavUtility {
 						}
 						//if the type for the children was not set before, we do it now
 						productTree.getCurrentNode().setTypeForChildren(requestItemType);
-						RequestType requestTypeForChildren;
+						
+						Log.e(TAG, "itemsToProcess = " + itemsToProcess);
 						
 						for (int i = 0; i < itemsToProcess.length(); i++) {
 							
@@ -228,9 +234,17 @@ public class NavUtility {
 							processedItemCount++;
 						}
 						
-						Log.e(TAG, "processedItemCount in  execParseChildrenCategories = " + processedItemCount);
+						Log.e(TAG, "processedItemCount in  getChildren() = " + processedItemCount);
 						
+						/*
+						 * Right now I am not really using these variables, but they will come in handy later for more\
+						 * complex transactions.
+						 */
+						initialItemCount = 0;
+						processedItemCount = 0;
 					}
+					
+					((NetworkListener) activity).networkTransactionDone(productTree.getCurrentNode());
 		
 				} catch (JSONException e1) {
 					e1.printStackTrace();

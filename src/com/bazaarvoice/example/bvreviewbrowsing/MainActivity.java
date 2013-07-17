@@ -1,7 +1,5 @@
 package com.bazaarvoice.example.bvreviewbrowsing;
 
-import java.util.ArrayList;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -19,7 +17,7 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements NetworkListener {
 
 	/*
 	 * For logging to console
@@ -38,28 +36,22 @@ public class MainActivity extends Activity {
 	private NavUtility navUtility;
 	
 	/*
-	 * To pass to navActivity to run threads in the UI
+	 * testing - just get one line of subcategories
 	 */
-	private MainActivity thisActivity;
-	
+	boolean doAnotherTransaction = true;
 	/*
-	 * The selectionID for this Activity so that we can load the right
-	 * content when the user is navigating the stack or re-entering the app
+	 * Determine if I should clear the canvas
 	 */
-	private String activitySelectionID;
-	
+	boolean firstDisplay = true;
 	/*
-	 * Should the onResume method be called after onCreate at this instance
+	 * transactions to pull down
 	 */
-	private boolean shouldResume;
+	private int numberOfChildrenToPull;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		
-		thisActivity = this;
-		shouldResume = false;
 	
 		relativeLayout = (RelativeLayout) findViewById(R.id.relativeLayout);
 		linearLayout = (LinearLayout) findViewById(R.id.linearLayout);
@@ -72,35 +64,12 @@ public class MainActivity extends Activity {
 		layoutParams.addRule(RelativeLayout.CENTER_IN_PARENT, 1);
 		textView.setLayoutParams(layoutParams);
 		
-		navUtility = BVReviewBrowsingApplication.navUtility;
+		navUtility = NavUtility.getInstanceOf(this);
 		
-		Intent intent = getIntent();	
 		/*
-		 * if the Activity is being opened by someone clicking on a category
+		 * Get the top categories
 		 */
-		if (intent.hasExtra(navUtility.CATEGORIES_IN_ACTIVITY)) {
-			navUtility.selectionID = intent.getStringExtra(navUtility.CATEGORIES_IN_ACTIVITY);
-			activitySelectionID = navUtility.selectionID;
-			Log.e(TAG, "before going into execParseTopCategories");
-			navUtility.levelsToPull = 2;
-			navUtility.execParseCategories(this);
-			/*
-			 * If the Activity is being opened by somoene clicking on a product
-			 */
-		} else if (intent.hasExtra(navUtility.PRODUCT_TO_DISPLAY)) {
-			navUtility.selectionID = intent.getStringExtra(navUtility.PRODUCT_TO_DISPLAY);
-			activitySelectionID = navUtility.selectionID;
-			displaySelectedProduct();
-		} else {		
-			/*
-			 * If this is the first time the application is opened
-			 */
-			Log.e(TAG, "before going into execParseCategories");
-			navUtility.topCategoryIds = new ArrayList<String>();
-			navUtility.topCategoryIds.add("null");
-			navUtility.levelsToPull = 2;
-			navUtility.execParseCategories(this);
-		}
+		navUtility.getChildren(null);
 		
 	}
 	
@@ -108,23 +77,11 @@ public class MainActivity extends Activity {
 	protected void onPause() {
 		super.onPause();
 		
-		Log.i(TAG, "entered onPause()");
-		shouldResume = true;
-		Log.i(TAG, "activitySelectionID = " + activitySelectionID);
-		
 	}
 	
 	@Override
 	protected void onResume() {
 		super.onResume();
-		
-		if (shouldResume) {
-			Log.i(TAG, "entered onResume()");
-			navUtility.selectionID = this.activitySelectionID;
-			Log.i(TAG, "navUtility.selectionID = " + navUtility.selectionID);
-			navUtility.levelsToPull = 2;
-			navUtility.execParseCategories(this);
-		}
 		
 	}
 
@@ -140,41 +97,71 @@ public class MainActivity extends Activity {
 		//Go to the previous part of the tree
 		
 	}
+
+	@Override
+	public void networkTransactionDone(BVNode itemPulled) {
+		Log.e(TAG, "itemPulled.isRoot() = " + itemPulled.isRoot());
+		try {
+			Log.e(TAG, "itemPulled's name = " + itemPulled.getData().getString("Name"));
+		} catch (Exception e) {
+			Log.e(TAG, "itemPulled's name = null");
+		}
+		try {
+			Log.e(TAG, "itemPulled's first child's name = " + itemPulled.getChildren().get(0).getData().getString("Name"));
+		} catch (Exception e) {
+			//nothing
+		}
+		
+		if (doAnotherTransaction) {		
+			numberOfChildrenToPull = itemPulled.getChildren().size();
+			
+			for (BVNode child : itemPulled.getChildren()) {		
+				/*
+				 * Get first row of subcategories
+				 */
+				navUtility.getChildren(child);
+			}
+			
+			doAnotherTransaction = false;
+		} else {
+			Log.e(TAG, "numberOfChildrenToPull = " + (numberOfChildrenToPull - 1));
+			if (--numberOfChildrenToPull == 0) {
+				displayCategories();
+			}
+		}
+	}
 	
 	
-	@SuppressLint("NewApi") 
 	public void displayCategories() {
-		//boolean hasChildren;
-		JSONArray children;
-		TextView newTextView;
-		JSONObject obj;
 		
 		Log.e(TAG, "entered displayCategories()");
 		
-		//hide other textView 
-		this.relativeLayout.removeView(textView);
-		
+		TextView newTextView;
 		//layout parameters for my new TextViews
 		LayoutParams layoutParams = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+	
+		if (firstDisplay) {
+			//hide other textView and start with a clean cabvas
+			this.relativeLayout.removeView(textView);
+			firstDisplay = false;
+		}
 		
-		
-		for (String topId : navUtility.topCategoryIds) {
-			try {
-				obj = navUtility.allCategories.get(topId);
+		try {
+			/*
+			 * Display the header for this category
+			 */
+			for (BVNode parent : navUtility.productTree.getRoot().getChildren()) {
 				newTextView = new TextView(this);
 				newTextView.setLayoutParams(layoutParams);
-				newTextView.setText(obj.getString("Name"));
+				newTextView.setText(parent.getData().getString("Name"));
 				this.linearLayout.addView(newTextView);
+			
+				for (BVNode child : parent.getChildren()) {
 				
-				children = obj.getJSONArray("Children");
-				
-				for (int i = 0; i < children.length(); i++) {
-					String childID = (String) children.get(i);
-					final JSONObject child = navUtility.allCategories.get(childID);
-					
 					newTextView = new TextView(this);
 					newTextView.setLayoutParams(layoutParams);
-					newTextView.setText("       " + child.getString("Name"));
+					newTextView.setText("       " + child.getData().getString("Name"));
+					/*
 					newTextView.setOnClickListener(new OnClickListener() {
 						String idClicked = child.getString("Id");
 						@Override
@@ -192,17 +179,18 @@ public class MainActivity extends Activity {
 							thisActivity.startActivity(intent);
 						}
 					});
+					*/
 					this.linearLayout.addView(newTextView);
 				}
-			} catch (JSONException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
-			
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
+		
 	
-	@SuppressLint("NewApi") 
+	/*
 	public void displayProducts() {
 		//boolean hasChildren;
 		JSONArray children;
@@ -315,5 +303,6 @@ public class MainActivity extends Activity {
 				
 				
 	}
+	*/
 
 }

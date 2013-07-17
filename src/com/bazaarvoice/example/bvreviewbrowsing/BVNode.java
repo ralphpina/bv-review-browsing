@@ -15,6 +15,7 @@ public class BVNode {
 	private RequestType typeForNode;
 	private RequestType typeForChildren;
 	private boolean isRoot;
+	private int nodeLevel;
 	
 	public BVNode() {
 		setData(null);
@@ -23,6 +24,7 @@ public class BVNode {
 		setTypeForNode(null);
 		setTypeForChildren(null);
 		setIsRoot(false);
+		setNodeLevel(0);
 		
 	}
 	
@@ -33,6 +35,7 @@ public class BVNode {
 		children = new ArrayList<BVNode>();
 		setTypeForChildren(null);
 		setIsRoot(false);
+		setNodeLevel(parent.getNodeLevel() + 1);
 	}
 	
 	public BVNode(BVProductTree root, RequestType typeForNode, boolean isRoot) {
@@ -42,6 +45,7 @@ public class BVNode {
 		children = new ArrayList<BVNode>();
 		setTypeForChildren(null);
 		setIsRoot(isRoot);
+		setNodeLevel(0);
 	}
 	
 	
@@ -100,6 +104,14 @@ public class BVNode {
 
 	public void setIsRoot(boolean isRoot) {
 		this.isRoot = isRoot;
+	}
+
+	public int getNodeLevel() {
+		return nodeLevel;
+	}
+
+	public void setNodeLevel(int nodeLevel) {
+		this.nodeLevel = nodeLevel;
 	}
 	
 }
