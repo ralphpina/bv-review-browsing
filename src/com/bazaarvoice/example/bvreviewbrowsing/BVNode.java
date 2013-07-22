@@ -36,6 +36,7 @@ public class BVNode {
 		setTypeForChildren(null);
 		setIsRoot(false);
 		setNodeLevel(parent.getNodeLevel() + 1);
+		
 	}
 	
 	public BVNode(BVProductTree root, RequestType typeForNode, boolean isRoot) {

@@ -1,5 +1,8 @@
 package com.bazaarvoice.example.bvreviewbrowsing;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -23,7 +26,7 @@ public class NavUtility {
 	/*
 	 * To make the API calls
 	 */
-	private static final String DOMAIN = "bestbuy.ugc.bazaarvoice.com";
+	private static final String DOMAIN = "api.bazaarvoice.com";
 	private static final String PASSKEY = "ax58agxc5oibip1dlzft2ej3f";
 	private static final ApiVersion API_VERSION = ApiVersion.FIVE_FOUR;
 	
@@ -35,6 +38,11 @@ public class NavUtility {
 	 * A tree for all categories products and reviews in the current activity
 	 */
 	public BVProductTree productTree;	
+	/*
+	 * A map to hold key-value pairs for all nodes. They key is the id of the item.
+	 * This will be used to add the correct items during async requests 
+	 */
+	public Map<String, BVNode> bvNodeMap;
 	/*
 	 * What type of item are the children
 	 */
@@ -86,6 +94,7 @@ public class NavUtility {
 	
 	private NavUtility() {
 		productTree = BVProductTree.getInstance();
+		bvNodeMap = new HashMap<String, BVNode>();
 		processedItemCount = 0;
 		batchSize = 100;
 		selectionID = null;
@@ -192,65 +201,62 @@ public class NavUtility {
 			
 			@Override
 			public void onUiResponse(JSONObject response) {
+			    BVNode parent = null;
 				try {
+					/*
 					if (initialItemCount == 0) {
 						initialItemCount = response.getInt("TotalResults");
 					}
+					*/
 					itemsToProcess = response.getJSONArray("Results");
-					
-					/*
-					 * if there are no results means that these items have to child categories
-					 * They either just have products or they are categories, which were called with 
-					 * children type category, but have no such subcategories, so a new request should
-					 * be made to check if they have products
-					 */
-					if (itemsToProcess.length() == 0) {
-						initialItemCount = 0;
-						processedItemCount = 0;
-						 //The type for the children will always be set
-						if (productTree.getCurrentNode().getTypeForNode() == RequestType.CATEGORIES 
-								&& productTree.getCurrentNode().getTypeForChildren() == null) {
-							productTree.getCurrentNode().setTypeForChildren(RequestType.PRODUCTS);
-							getChildren(productTree.getCurrentNode());
-						}
 						
-					//go get the children
-					} else { 	
-						if (productTree.getRoot() == null) {
-							BVNode newRoot = new BVNode(productTree, RequestType.CATEGORIES, true);
-							productTree.setCurrentNode(newRoot);
-						}
-						//if the type for the children was not set before, we do it now
-						productTree.getCurrentNode().setTypeForChildren(requestItemType);
-						
-						Log.e(TAG, "itemsToProcess = " + itemsToProcess);
-						
-						for (int i = 0; i < itemsToProcess.length(); i++) {
-							
-							//make a node if the current JSONObject
-							BVNode newNode = new BVNode(itemsToProcess.getJSONObject(i), productTree.getCurrentNode(), requestItemType);
-							//add the current node to the 
-							productTree.getCurrentNode().getChildren().add(newNode);
-							processedItemCount++;
-						}
-						
-						Log.e(TAG, "processedItemCount in  getChildren() = " + processedItemCount);
-						
-						/*
-						 * Right now I am not really using these variables, but they will come in handy later for more\
-						 * complex transactions.
-						 */
-						initialItemCount = 0;
-						processedItemCount = 0;
+					// If the type for the children is not set, then check the parent of the first item and set it that way
+					//Log.e(TAG, "itemsToProcess.getJSONObject(0) = " + itemsToProcess.getJSONObject(0));
+					Log.e(TAG, "itemsToProcess.getJSONObject(0).get(\"Id\") = " + itemsToProcess.getJSONObject(0).get("Id"));
+					parent = getParentByID(itemsToProcess.getJSONObject(0).getString("ParentId"));
+					Log.e(TAG, "parent = " + parent);
+					if (parent != null) {
+					    Log.e(TAG, "parent name = " + parent.getData().getString("Name"));
+						parent.setTypeForChildren(requestItemType);				
+					} else {
+					    if (productTree.getRoot() == null) {
+	                        BVNode newRoot = new BVNode(productTree, RequestType.CATEGORIES, true);
+	                        parent = newRoot;
+	                    } else {
+	                        parent = productTree.getRoot();
+	                    }
 					}
 					
-					((NetworkListener) activity).networkTransactionDone(productTree.getCurrentNode());
+					Log.e(TAG, "itemsToProcess = " + itemsToProcess);
+					
+					for (int i = 0; i < itemsToProcess.length(); i++) {
+						
+						//make a node if the current JSONObject
+						BVNode newNode = new BVNode(itemsToProcess.getJSONObject(i), parent, requestItemType);
+						//add the current node to the 
+						parent.getChildren().add(newNode);
+						addItemToMap(newNode);						
+					}
 		
 				} catch (JSONException e1) {
 					e1.printStackTrace();
+				} finally {
+				    ((NetworkListener) activity).networkTransactionDone(parent);
 				}
 			}
 		});	
 	}
+	
+	public BVNode getParentByID(String id) {
+		return bvNodeMap.get(id);
+	}
+	
+	public void addItemToMap(BVNode item) {
+        try {
+            bvNodeMap.put(item.getData().getString("Id"), item);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
 
 }

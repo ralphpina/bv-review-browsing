@@ -1,18 +1,12 @@
 package com.bazaarvoice.example.bvreviewbrowsing;
 
-import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
-import android.annotation.SuppressLint;
 import android.app.ActionBar.LayoutParams;
 import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
-import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -53,16 +47,17 @@ public class MainActivity extends Activity implements NetworkListener {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 	
+		/*
 		relativeLayout = (RelativeLayout) findViewById(R.id.relativeLayout);
 		linearLayout = (LinearLayout) findViewById(R.id.linearLayout);
 		textView = (TextView) findViewById(R.id.textView);
 		
 		textView.setText("Yo! We are loading your data!");
-		//textView.setMovementMethod(new ScrollingMovementMethod());
 
 		layoutParams = (RelativeLayout.LayoutParams)textView.getLayoutParams();
 		layoutParams.addRule(RelativeLayout.CENTER_IN_PARENT, 1);
 		textView.setLayoutParams(layoutParams);
+		*/
 		
 		navUtility = NavUtility.getInstanceOf(this);
 		
@@ -99,21 +94,10 @@ public class MainActivity extends Activity implements NetworkListener {
 	}
 
 	@Override
-	public void networkTransactionDone(BVNode itemPulled) {
-		Log.e(TAG, "itemPulled.isRoot() = " + itemPulled.isRoot());
-		try {
-			Log.e(TAG, "itemPulled's name = " + itemPulled.getData().getString("Name"));
-		} catch (Exception e) {
-			Log.e(TAG, "itemPulled's name = null");
-		}
-		try {
-			Log.e(TAG, "itemPulled's first child's name = " + itemPulled.getChildren().get(0).getData().getString("Name"));
-		} catch (Exception e) {
-			//nothing
-		}
-		
+	public void networkTransactionDone(BVNode itemPulled) {		
 		if (doAnotherTransaction) {		
 			numberOfChildrenToPull = itemPulled.getChildren().size();
+			Log.e(TAG, "numberOfChildrenToPull first = " + (numberOfChildrenToPull));
 			
 			for (BVNode child : itemPulled.getChildren()) {		
 				/*
@@ -124,9 +108,9 @@ public class MainActivity extends Activity implements NetworkListener {
 			
 			doAnotherTransaction = false;
 		} else {
-			Log.e(TAG, "numberOfChildrenToPull = " + (numberOfChildrenToPull - 1));
+			Log.e(TAG, "numberOfChildrenToPull last = " + (numberOfChildrenToPull));
 			if (--numberOfChildrenToPull == 0) {
-				displayCategories();
+				//displayCategories();
 			}
 		}
 	}
