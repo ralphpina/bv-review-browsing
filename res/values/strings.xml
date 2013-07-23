@@ -4,5 +4,6 @@
     <string name="app_name">BV Review Browsing</string>
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
+    <string name="imageview_item_template_description">Image of Item or Category</string>
 
 </resources>

@@ -11,8 +11,11 @@
      android:layout_height="wrap_content"
      android:orientation="vertical" >
 
+     <!-- 
+     ** This is being drawn dynamically - I am leaving it here for reference
+     ** The actual styles are inside the different template XML files which are inflated     
      <TextView
-         android:id="@+id/TextView01"
+         android:id="@+id/categoryName"
          android:layout_width="wrap_content"
          android:layout_height="wrap_content"
          android:paddingLeft="5dp"
@@ -20,79 +23,37 @@
          android:text="TextView"
          android:textSize="15sp" />
 
-     <LinearLayout
+     <HorizontalScrollView
+         android:id="@+id/scrollView1"
          android:layout_width="match_parent"
-         android:layout_height="wrap_content" >
-
-         <FrameLayout
-             android:layout_width="wrap_content"
-             android:layout_height="wrap_content"
-             android:padding="5dp" >
-
-             <ImageView
-                 android:id="@+id/imageView1"
-                 android:layout_width="100dp"
-                 android:layout_height="100dp"
-                 android:src="@drawable/ic_launcher" />
-
-         </FrameLayout>
-
-         <FrameLayout
-             android:layout_width="wrap_content"
-             android:layout_height="wrap_content"
-             android:padding="5dp" >
-
-             <ImageView
-                 android:id="@+id/imageView2"
-                 android:layout_width="100dp"
-                 android:layout_height="100dp"
-                 android:src="@drawable/ic_launcher" />
-
-         </FrameLayout>
-
-     </LinearLayout>
-
-     <TextView
-         android:id="@+id/textView1"
-         android:layout_width="wrap_content"
          android:layout_height="wrap_content"
-         android:paddingLeft="5dp"
-         android:paddingTop="5dp"
-         android:text="TextView"
-         android:textSize="15sp" />
-     
-     <LinearLayout
-         android:layout_width="match_parent"
-         android:layout_height="wrap_content" >
+         android:scrollbars="none" >
 
-         <FrameLayout
-             android:layout_width="wrap_content"
-             android:layout_height="wrap_content"
-             android:padding="10dp" >
+         <LinearLayout
+             android:id="@+id/itemsLayout"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content" 
+             android:orientation="horizontal" >
 
-             <ImageView
-                 android:id="@+id/imageView1"
+              
+             <FrameLayout
+                 android:id="@+id/itemFrame"
                  android:layout_width="wrap_content"
                  android:layout_height="wrap_content"
-                 android:src="@drawable/ic_launcher" />
+                 android:padding="5dp" >
 
-         </FrameLayout>
+                 <ImageView
+                     android:id="@+id/itemImage"
+                     android:layout_width="100dp"
+                     android:layout_height="100dp"
+                     android:src="@drawable/ic_launcher" />
+             </FrameLayout>
+             
+             
+         </LinearLayout>
 
-         <FrameLayout
-             android:layout_width="wrap_content"
-             android:layout_height="wrap_content"
-             android:padding="10dp" >
-
-             <ImageView
-                 android:id="@+id/imageView2"
-                 android:layout_width="wrap_content"
-                 android:layout_height="wrap_content"
-                 android:src="@drawable/ic_launcher" />
-
-         </FrameLayout>
-
-     </LinearLayout>
-
+     </HorizontalScrollView>
+-->
  </LinearLayout>
 
 </ScrollView>

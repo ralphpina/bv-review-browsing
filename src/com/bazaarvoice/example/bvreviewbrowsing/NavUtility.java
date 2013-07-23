@@ -201,7 +201,9 @@ public class NavUtility {
 			
 			@Override
 			public void onUiResponse(JSONObject response) {
+			    
 			    BVNode parent = null;
+			    
 				try {
 					/*
 					if (initialItemCount == 0) {
@@ -210,13 +212,10 @@ public class NavUtility {
 					*/
 					itemsToProcess = response.getJSONArray("Results");
 						
-					// If the type for the children is not set, then check the parent of the first item and set it that way
-					//Log.e(TAG, "itemsToProcess.getJSONObject(0) = " + itemsToProcess.getJSONObject(0));
-					Log.e(TAG, "itemsToProcess.getJSONObject(0).get(\"Id\") = " + itemsToProcess.getJSONObject(0).get("Id"));
+					// If the type for the children is not set, then check the parent of the first
+					// item and set it that way
 					parent = getParentByID(itemsToProcess.getJSONObject(0).getString("ParentId"));
-					Log.e(TAG, "parent = " + parent);
 					if (parent != null) {
-					    Log.e(TAG, "parent name = " + parent.getData().getString("Name"));
 						parent.setTypeForChildren(requestItemType);				
 					} else {
 					    if (productTree.getRoot() == null) {
@@ -226,16 +225,19 @@ public class NavUtility {
 	                        parent = productTree.getRoot();
 	                    }
 					}
-					
-					Log.e(TAG, "itemsToProcess = " + itemsToProcess);
-					
+										
 					for (int i = 0; i < itemsToProcess.length(); i++) {
 						
-						//make a node if the current JSONObject
-						BVNode newNode = new BVNode(itemsToProcess.getJSONObject(i), parent, requestItemType);
-						//add the current node to the 
-						parent.getChildren().add(newNode);
-						addItemToMap(newNode);						
+					    // I am going to assume the item appears in the tree only once 
+					    // if it is showing up twice it is because the same network transaction was
+					    // done twice
+					    if (!itemFoundInTree(itemsToProcess.getJSONObject(i).getString("Id"))) {
+    						//make a node if the current JSONObject
+    						BVNode newNode = new BVNode(itemsToProcess.getJSONObject(i), parent, requestItemType);
+    						//add the current node to the 
+    						parent.getChildren().add(newNode);
+    						addItemToMap(newNode);						
+					    }
 					}
 		
 				} catch (JSONException e1) {
@@ -247,11 +249,15 @@ public class NavUtility {
 		});	
 	}
 	
-	public BVNode getParentByID(String id) {
+	private boolean itemFoundInTree(String id) {
+	    return bvNodeMap.containsKey(id);
+	}
+	
+	private BVNode getParentByID(String id) {
 		return bvNodeMap.get(id);
 	}
 	
-	public void addItemToMap(BVNode item) {
+	private void addItemToMap(BVNode item) {
         try {
             bvNodeMap.put(item.getData().getString("Id"), item);
         } catch (JSONException e) {
