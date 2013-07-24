@@ -60,6 +60,7 @@ public class MainActivity extends Activity implements NetworkListener {
 		/*
 		 * Get the top categories
 		 */
+		navUtility.productTree.setCurrentNode(null);
 		navUtility.getChildren(null);
 		
 		Log.e(TAG, "onCreate");
@@ -165,9 +166,22 @@ public class MainActivity extends Activity implements NetworkListener {
 			/*
 			 * Display the header for this category
 			 */
-			for (BVNode parent : navUtility.productTree.getRoot().getChildren()) {
+		    BVNode topCategory = navUtility.productTree.getCurrentNode();
+		    if (topCategory == null) {
+		        topCategory = navUtility.productTree.getRoot();
+		    }
+		    
+		    Log.e(TAG, "topCategory.getChildren().size() = " + topCategory.getChildren().size());
+		    
+		    for (BVNode parent : topCategory.getChildren()) {
+		        Log.e(TAG, "item name = " + parent.getData().getString("Name"));
+		    }
+		    
+			for (BVNode parent : topCategory.getChildren()) {
+			    Log.e(TAG, "after topCategory.getChildren()");
 			    // if the category is empty, don't display it
-			    if (parent.getChildren().size() != 0) {
+			    //if (parent.getChildren().size() != 0) {
+			        Log.e(TAG, "after parent.getChildren().size()");
         		    textViewCategoryName = (TextView) getLayoutInflater().inflate(R.layout.category_name_template, null);
         			textViewCategoryName.setText(parent.getData().getString("Name"));
         			this.linearLayoutMain.addView(textViewCategoryName);
@@ -202,12 +216,13 @@ public class MainActivity extends Activity implements NetworkListener {
         					String idClicked = child.getData().getString("Id");
         					@Override
         					public void onClick(View v) {
+        					    BVNode itemSelected = navUtility.bvNodeMap.get(idClicked);
         						Toast.makeText(v.getContext(), "On click = " + idClicked, Toast.LENGTH_SHORT).show();
         					}
         				});
         				frameLayoutItem.addView(textViewCategoryName);
         			}
-			    }
+			    //}
 			}
 		} catch (JSONException e) {
 			e.printStackTrace();

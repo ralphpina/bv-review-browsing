@@ -120,29 +120,24 @@ public class NavUtility {
 		 * Get all the top child categories
 		 */
 		params = new DisplayParams();
-	
-		/*
-		 * Set the currentNode
-		 */
-		productTree.setCurrentNode(parent);
 		
 		/*
 		 * Are we getting the top category
 		 */
-		if (productTree.getCurrentNode() == null) {
+		if (parent == null) {
 			Id = "null";		
 			requestItemType = RequestType.CATEGORIES;
 			
 		} else {
 			//get the id of the current type
 			try {
-				Id = productTree.getCurrentNode().getData().getString("Id");
+				Id = parent.getData().getString("Id");
 			} catch (JSONException e) {
 				Log.e(TAG, "The current node has no ID?!?!?");
 				Id = "null";
 				e.printStackTrace();
 			}
-			requestItemType = productTree.getCurrentNode().getTypeForChildren();
+			requestItemType = parent.getTypeForChildren();
 			
 			/* 
 			 * for this example, I am going to assume that children will just be categories, products, or reviews
@@ -151,7 +146,7 @@ public class NavUtility {
 			 * try it will skip this block
 			 */
 			if (requestItemType == null) {
-				if (productTree.getCurrentNode().getTypeForNode() == RequestType.CATEGORIES) {
+				if (parent.getTypeForNode() == RequestType.CATEGORIES) {
 					requestItemType = RequestType.CATEGORIES;
 				} else {
 					requestItemType = RequestType.REVIEWS;
