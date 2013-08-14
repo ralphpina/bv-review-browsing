@@ -3,6 +3,7 @@ package com.bazaarvoice.example.bvreviewbrowsing;
 import org.json.JSONException;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -14,10 +15,11 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.bazaarvoice.types.RequestType;
 
 public class MainActivity extends Activity implements NetworkListener {
 
@@ -63,8 +65,6 @@ public class MainActivity extends Activity implements NetworkListener {
 		navUtility.productTree.setCurrentNode(null);
 		navUtility.getChildren(null);
 		
-		Log.e(TAG, "onCreate");
-		
 	}
 	
 	@Override
@@ -75,13 +75,11 @@ public class MainActivity extends Activity implements NetworkListener {
 	@Override
 	protected void onStart() {
 	    super.onStart();
-	    Log.e(TAG, "onStart");
 	}
 	
 	@Override
 	protected void onResume() {
 		super.onResume();
-		Log.e(TAG, "onResume");
 	}
 	
 	@Override
@@ -102,8 +100,27 @@ public class MainActivity extends Activity implements NetworkListener {
 	
 	@Override
 	public void onBackPressed() {
-		//Go to the previous part of the tree
-		
+	    
+	    // We are at the top of the tree
+	    if (navUtility.productTree.getCurrentNode() == null) {
+	        finish(); 
+	    } else if (navUtility.productTree.getCurrentNode().getParent() == null) {
+	        finish(); 
+	    } else {
+	        BVNode parent = navUtility.productTree.getCurrentNode().getParent().getParent();
+    	    
+    	    if (parent == null) {
+    	        finish();
+    	    } else {
+                doAnotherTransaction = true;
+                navUtility.productTree.setCurrentNode(parent);
+                if (parent.getChildren().size() > 0) {
+                    displayCategories();
+                } else {
+                    navUtility.getChildren(parent);
+                }
+    	    }
+	    }
 	}
 
 	@Override
@@ -122,7 +139,7 @@ public class MainActivity extends Activity implements NetworkListener {
 			doAnotherTransaction = false;
 		} else {
 			Log.e(TAG, "numberOfChildrenToPull last = " + (numberOfChildrenToPull));
-			if (--numberOfChildrenToPull == 0) {
+			if (--numberOfChildrenToPull <= 0) {
 				displayCategories();
 			}
 		}
@@ -153,7 +170,7 @@ public class MainActivity extends Activity implements NetworkListener {
 		/*
 		 * For item images
 		 */
-		ImageView imageItem;
+		//ImageView imageItem;
 		
 		this.linearLayoutMain.removeAllViews();
 		
@@ -166,118 +183,116 @@ public class MainActivity extends Activity implements NetworkListener {
 			/*
 			 * Display the header for this category
 			 */
-		    BVNode topCategory = navUtility.productTree.getCurrentNode();
-		    if (topCategory == null) {
-		        topCategory = navUtility.productTree.getRoot();
+		    BVNode topNode = navUtility.productTree.getCurrentNode();
+		    if (topNode == null) {
+		        topNode = navUtility.productTree.getRoot();
 		    }
 		    
-		    Log.e(TAG, "topCategory.getChildren().size() = " + topCategory.getChildren().size());
+		    //Categories with parent children
+		    Log.e(TAG, "topNode.getTypeForChildren() = " + topNode.getTypeForChildren());
+		    Log.e(TAG, "topNode.getChildren().size() = " + topNode.getChildren().size());
+		    if (topNode.getTypeForChildren() == RequestType.CATEGORIES) {
 		    
-		    for (BVNode parent : topCategory.getChildren()) {
-		        Log.e(TAG, "item name = " + parent.getData().getString("Name"));
+    			for (BVNode parent : topNode.getChildren()) {
+            		    textViewCategoryName = (TextView) getLayoutInflater().inflate(R.layout.category_name_template, null);
+            			textViewCategoryName.setText(parent.getData().getString("Name"));
+            			this.linearLayoutMain.addView(textViewCategoryName);
+            			
+            			horizontalScrollView = (HorizontalScrollView) getLayoutInflater().inflate(R.layout.horizontal_scrollview_items_template, null);
+            			this.linearLayoutMain.addView(horizontalScrollView);
+            			
+            			linearLayoutItems = (LinearLayout) getLayoutInflater().inflate(R.layout.linear_layout_items_template, null);
+            			horizontalScrollView.addView(linearLayoutItems);
+            			
+            			for (int i = 0; i < parent.getChildren().size(); i++) {
+            		
+            			    final BVNode child = parent.getChildren().get(i);
+            			    
+            			    frameLayoutItem = (FrameLayout) getLayoutInflater().inflate(R.layout.frame_layout_item_template, null);
+            			    linearLayoutItems.addView(frameLayoutItem);
+            			    
+            			    textViewCategoryName = new TextView(this);
+            				textViewCategoryName.setLayoutParams(new LayoutParams(imageSize, imageSize));
+            				textViewCategoryName.setText(child.getData().getString("Name"));
+            				textViewCategoryName.setPadding(padding, padding, padding, padding);
+            				textViewCategoryName.setTextColor(Color.WHITE);
+            				textViewCategoryName.setBackgroundColor(getResources().getColor(R.color.bv_light_green));
+            				textViewCategoryName.setOnClickListener(new OnClickListener() {
+            					String idClicked = child.getData().getString("Id");
+            					@Override
+            					public void onClick(View v) {
+            					    BVNode itemSelected = navUtility.bvNodeMap.get(idClicked);
+            						Toast.makeText(v.getContext(), "On click = " + idClicked, Toast.LENGTH_SHORT).show();
+            						doAnotherTransaction = true;
+            						navUtility.productTree.setCurrentNode(itemSelected);
+            						if (itemSelected.getChildren().size() > 0) {
+            		                    displayCategories();
+            		                } else {
+            		                    navUtility.getChildren(itemSelected);
+            		                }         
+            					}
+            				});
+            				frameLayoutItem.addView(textViewCategoryName);
+            			}
+    			}
+    		
+    		//These are products	
+		    } else {
+		        
+		        // How many products are we adding
+		        int numberOfProducts = topNode.getChildren().size();
+		        // into rows with 3 each
+		        // Add this later
+		        /*
+		        int rowsOfProducts = numberOfProducts / 3;
+		        // do we have any left over
+		        if (numberOfProducts % 3 != 0) {
+		            rowsOfProducts++;
+		        } 
+		        */
+		        
+		        for (int i = 0; i < numberOfProducts; i = i + 3) {
+		            linearLayoutItems = (LinearLayout) getLayoutInflater().inflate(R.layout.linear_layout_items_template, null);
+		            this.linearLayoutMain.addView(linearLayoutItems);
+		            
+		            for (int j = 0; j < 3; j++) {
+    		            frameLayoutItem = (FrameLayout) getLayoutInflater().inflate(R.layout.frame_layout_item_template, null);
+                        linearLayoutItems.addView(frameLayoutItem);
+                        
+                        if ((i + j) < topNode.getChildren().size()) {
+                            final BVNode child = topNode.getChildren().get(i + j);
+                            
+                            if (child != null) {
+                            
+                                textViewCategoryName = new TextView(this);
+                                textViewCategoryName.setLayoutParams(new LayoutParams(imageSize, imageSize));
+                                textViewCategoryName.setText(child.getData().getString("Name"));
+                                textViewCategoryName.setPadding(padding, padding, padding, padding);
+                                textViewCategoryName.setTextColor(Color.WHITE);
+                                textViewCategoryName.setBackgroundColor(getResources().getColor(R.color.bv_light_green));
+                                textViewCategoryName.setOnClickListener(new OnClickListener() {
+                                    String idClicked = child.getData().getString("Id");
+                                    @Override
+                                    public void onClick(View v) {
+                                        BVNode itemSelected = navUtility.bvNodeMap.get(idClicked);
+                                        doAnotherTransaction = true;
+                                        navUtility.productTree.setCurrentNode(itemSelected);
+                                        Intent goToProduct = new Intent(navUtility.activity, ProductActivity.class);
+                                        goToProduct.putExtra("idClicked", idClicked);
+                                        startActivity(goToProduct);
+                                    }
+                                });
+                                frameLayoutItem.addView(textViewCategoryName);
+                                
+                            }
+                        }
+		            }
+		        }
+		        
 		    }
-		    
-			for (BVNode parent : topCategory.getChildren()) {
-			    Log.e(TAG, "after topCategory.getChildren()");
-			    // if the category is empty, don't display it
-			    //if (parent.getChildren().size() != 0) {
-			        Log.e(TAG, "after parent.getChildren().size()");
-        		    textViewCategoryName = (TextView) getLayoutInflater().inflate(R.layout.category_name_template, null);
-        			textViewCategoryName.setText(parent.getData().getString("Name"));
-        			this.linearLayoutMain.addView(textViewCategoryName);
-        			
-        			horizontalScrollView = (HorizontalScrollView) getLayoutInflater().inflate(R.layout.horizontal_scrollview_items_template, null);
-        			this.linearLayoutMain.addView(horizontalScrollView);
-        			
-        			linearLayoutItems = (LinearLayout) getLayoutInflater().inflate(R.layout.linear_layout_items_template, null);
-        			horizontalScrollView.addView(linearLayoutItems);
-        			
-        			for (int i = 0; i < parent.getChildren().size(); i++) {
-        		
-        			    final BVNode child = parent.getChildren().get(i);
-        			    
-        			    frameLayoutItem = (FrameLayout) getLayoutInflater().inflate(R.layout.frame_layout_item_template, null);
-        			    linearLayoutItems.addView(frameLayoutItem);
-        			    
-        			    /*
-        			    imageItem = new ImageView(this);
-        			    imageItem.setImageResource(R.drawable.ic_launcher);
-        			    imageItem.setLayoutParams(new LayoutParams(imageSize, imageSize));
-        			    frameLayoutItem.addView(imageItem);
-        			    */
-        			    
-        			    textViewCategoryName = new TextView(this);
-        				textViewCategoryName.setLayoutParams(new LayoutParams(imageSize, imageSize));
-        				textViewCategoryName.setText(child.getData().getString("Name"));
-        				textViewCategoryName.setPadding(padding, padding, padding, padding);
-        				textViewCategoryName.setTextColor(Color.WHITE);
-        				textViewCategoryName.setBackgroundColor(getResources().getColor(R.color.bv_light_green));
-        				textViewCategoryName.setOnClickListener(new OnClickListener() {
-        					String idClicked = child.getData().getString("Id");
-        					@Override
-        					public void onClick(View v) {
-        					    BVNode itemSelected = navUtility.bvNodeMap.get(idClicked);
-        						Toast.makeText(v.getContext(), "On click = " + idClicked, Toast.LENGTH_SHORT).show();
-        					}
-        				});
-        				frameLayoutItem.addView(textViewCategoryName);
-        			}
-			    //}
-			}
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
 	}
-		
-	
-
-/*	
-	@SuppressLint("NewApi")
-	private void displaySelectedProduct() {
-		
-		TextView newTextView;
-		JSONObject obj;
-		JSONObject tempObj;
-		
-		Log.e(TAG, "entered displaySelectedProduct()");
-		
-		//hide other textView 
-		this.relativeLayout.removeView(textView);
-		
-		//layout parameters for my new TextViews
-		LayoutParams layoutParams = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);		
-		
-		try {
-			obj = navUtility.allProducts.get(navUtility.selectionID);
-			
-			newTextView = new TextView(this);
-			newTextView.setLayoutParams(layoutParams);
-			tempObj = obj.getJSONObject("Brand");
-			newTextView.setText(tempObj.getString("Name"));
-			this.linearLayout.addView(newTextView);
-			
-			newTextView = new TextView(this);
-			newTextView.setLayoutParams(layoutParams);
-			newTextView.setText(obj.getString("Name"));
-			this.linearLayout.addView(newTextView);
-			
-			newTextView = new TextView(this);
-			newTextView.setLayoutParams(layoutParams);
-			newTextView.setText("$XX.XX");
-			this.linearLayout.addView(newTextView);
-			
-			newTextView = new TextView(this);
-			newTextView.setLayoutParams(layoutParams);
-			newTextView.setText(obj.getString("Description"));
-			this.linearLayout.addView(newTextView);
-		
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-				
-				
-	}
-	*/
 
 }

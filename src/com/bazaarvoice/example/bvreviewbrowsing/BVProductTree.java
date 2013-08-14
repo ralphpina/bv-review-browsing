@@ -8,6 +8,7 @@ public class BVProductTree {
 	private static BVProductTree productTree;
 	private BVNode root;
 	private BVNode currentNode;
+	private BVNode activeNode;
 	private int treeLevel;
 	
 	
@@ -51,5 +52,11 @@ public class BVProductTree {
 	public void decrementTreeLevel() {
 		treeLevel--;
 	}
+    public BVNode getActiveNode() {
+        return activeNode;
+    }
+    public void setActiveNode(BVNode activeNode) {
+        this.activeNode = activeNode;
+    }
 
 }

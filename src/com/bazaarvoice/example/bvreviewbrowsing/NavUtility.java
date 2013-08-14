@@ -129,15 +129,19 @@ public class NavUtility {
 			requestItemType = RequestType.CATEGORIES;
 			
 		} else {
+		    //set the active node so we know what we are pulling down.
+		    //this is needed in case we need to do another transaction to get products instead
+		    //of categories, etc.
+		    productTree.setActiveNode(parent);
 			//get the id of the current type
 			try {
 				Id = parent.getData().getString("Id");
-			} catch (JSONException e) {
+			} catch (Exception e) {
 				Log.e(TAG, "The current node has no ID?!?!?");
 				Id = "null";
 				e.printStackTrace();
 			}
-			requestItemType = parent.getTypeForChildren();
+			requestItemType = parent.getTypeForChildren();;
 			
 			/* 
 			 * for this example, I am going to assume that children will just be categories, products, or reviews
@@ -164,6 +168,7 @@ public class NavUtility {
 			 */
 			params.addSort("TotalQuestionCount", false);
 			params.addFilter("isActive", Equality.EQUAL, "true");
+			params.addFilter("ParentId", Equality.EQUAL, Id);
 			
 		} else if (requestItemType == RequestType.PRODUCTS) {
 			/*
@@ -174,7 +179,8 @@ public class NavUtility {
 			 * I am using the total reviews and is active as a proxy for the more popular products.
 			 */
 			params.addSort("TotalReviewCount", false);
-			params.addFilter("isActive", Equality.EQUAL, "true");		
+			params.addFilter("isActive", Equality.EQUAL, "true");	
+			params.addFilter("CategoryId", Equality.EQUAL, Id);
 			
 		} else { //we are getting reviews!
 			/*
@@ -186,8 +192,6 @@ public class NavUtility {
 			 */
 			params.addSort("TotalCommentCount", false);
 		}
-		
-		params.addFilter("ParentId", Equality.EQUAL, Id);
 		
 		/*
 		 * send the request and process the response
@@ -206,34 +210,57 @@ public class NavUtility {
 					}
 					*/
 					itemsToProcess = response.getJSONArray("Results");
+					Log.e(TAG, "itemsToProcess = " + itemsToProcess);
 						
-					// If the type for the children is not set, then check the parent of the first
-					// item and set it that way
-					parent = getParentByID(itemsToProcess.getJSONObject(0).getString("ParentId"));
-					if (parent != null) {
-						parent.setTypeForChildren(requestItemType);				
-					} else {
-					    if (productTree.getRoot() == null) {
-	                        BVNode newRoot = new BVNode(productTree, RequestType.CATEGORIES, true);
-	                        parent = newRoot;
-	                    } else {
-	                        parent = productTree.getRoot();
-	                    }
-					}
-										
-					for (int i = 0; i < itemsToProcess.length(); i++) {
-						
-					    // I am going to assume the item appears in the tree only once 
-					    // if it is showing up twice it is because the same network transaction was
-					    // done twice
-					    if (!itemFoundInTree(itemsToProcess.getJSONObject(i).getString("Id"))) {
-    						//make a node if the current JSONObject
-    						BVNode newNode = new BVNode(itemsToProcess.getJSONObject(i), parent, requestItemType);
-    						//add the current node to the 
-    						parent.getChildren().add(newNode);
-    						addItemToMap(newNode);						
+					if (itemsToProcess.length() > 0) {
+    					// If the type for the children is not set, then check the parent of the first
+    					// item and set it that way
+					    
+					    // we are dealing with categories and we want their parent category
+					    if (itemsToProcess.getJSONObject(0).has("ParentId")) {  
+					        parent = getParentByID(itemsToProcess.getJSONObject(0).getString("ParentId"));
+					        
+					     // else, these are products and they have their category IDs
+					    } else if ((itemsToProcess.getJSONObject(0).has("CategoryId"))) {
+					        parent = getParentByID(itemsToProcess.getJSONObject(0).getString("CategoryId"));
 					    }
-					}
+    					if (parent != null) {
+    						parent.setTypeForChildren(requestItemType);				
+    					} else {
+    					    if (productTree.getRoot() == null) {
+    	                        BVNode newRoot = new BVNode(productTree, RequestType.CATEGORIES, true);
+    	                        parent = newRoot;
+    	                        parent.setTypeForChildren(requestItemType);
+    	                    } else {
+    	                        parent = productTree.getRoot();
+    	                        parent.setTypeForChildren(requestItemType);
+    	                    }
+    					}
+    										
+    					for (int i = 0; i < itemsToProcess.length(); i++) {
+    						
+    					    // I am going to assume the item appears in the tree only once 
+    					    // if it is showing up twice it is because the same network transaction was
+    					    // done twice
+    					    if (!itemFoundInTree(itemsToProcess.getJSONObject(i).getString("Id"))) {
+        						//make a node if the current JSONObject
+        						BVNode newNode = new BVNode(itemsToProcess.getJSONObject(i), parent, requestItemType);
+        						//add the current node to the 
+        						parent.getChildren().add(newNode);
+        						addItemToMap(newNode);						
+    					    }
+    					}
+    				} else if (requestItemType == RequestType.CATEGORIES) {
+    				    /*
+    				     * If this is a category that has children and not other categories.
+    				     * Change the item
+    				     */
+    				    parent = productTree.getActiveNode();
+    				    if (parent != null) {
+        				    parent.setTypeForChildren(RequestType.PRODUCTS);
+        				    getChildren(parent);
+    				    }
+    				}
 		
 				} catch (JSONException e1) {
 					e1.printStackTrace();

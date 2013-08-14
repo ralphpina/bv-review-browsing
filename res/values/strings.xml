@@ -6,4 +6,12 @@
     <string name="hello_world">Hello world!</string>
     <string name="imageview_item_template_description">Image of Item or Category</string>
 
+    <string name="brandText">brand</string>
+    <string name="priceText">price</string>
+    <string name="contentDesc">product pic</string>    
+    <string name="productDesc">description placeholder</string>
+    <string name="productNameText">name placeholder</string>
+    <string name="ramText">ram placeholder</string>
+    <string name="hdText">hd placeholder</string>
+    <string name="myheader">myHeader</string>
 </resources>
