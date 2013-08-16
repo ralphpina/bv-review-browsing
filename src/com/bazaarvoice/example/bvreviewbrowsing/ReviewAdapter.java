@@ -22,11 +22,6 @@ public class ReviewAdapter extends BaseAdapter {
     public ReviewAdapter(ProductReviewsFragment reviewsFragment, ArrayList<HashMap<String, String>> data) {
         this.reviewsFragment = reviewsFragment;
         this.data = data;
-        
-        if (reviewsFragment.mheaderView != null) {
-            reviewsFragment.getListView().addHeaderView(reviewsFragment.mheaderView);
-        }
-        
        
         inflater = (LayoutInflater) reviewsFragment.getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         
@@ -75,10 +70,10 @@ public class ReviewAdapter extends BaseAdapter {
         review = data.get(position);
         
         // Setting all values in listview
-        ratingBar.setNumStars(Integer.valueOf(review.get(NavUtility.REVIEW_RATING)));
+        ratingBar.setRating(Float.valueOf(review.get(NavUtility.REVIEW_RATING)));
         userNickname.setText(review.get(NavUtility.REVIEW_USER_NICKNAME));
         reviewText.setText(review.get(NavUtility.REVIEW_TEXT));
-        reviewSubmissionTime.setText(review.get(NavUtility.REVIEW_SUBMISSION_TIME));
+        reviewSubmissionTime.setText(review.get(NavUtility.REVIEW_SUBMISSION_TIME).substring(0, 10));
         
         return vi;
     }
