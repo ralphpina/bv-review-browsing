@@ -10,10 +10,10 @@ import com.bazaarvoice.OnBazaarResponse;
 public abstract class BazaarUIThreadResponse implements OnBazaarResponse {
 
 	private static final String TAG = "BazaarUIThreadResponse";
-	protected Activity context;
+	protected Activity activity;
 	
-	public BazaarUIThreadResponse(Activity context){
-		this.context = context;
+	public BazaarUIThreadResponse(Activity activity){
+		this.activity = activity;
 	}
 	
 	/**
@@ -37,7 +37,7 @@ public abstract class BazaarUIThreadResponse implements OnBazaarResponse {
 	 */
 	public void onResponse(JSONObject response) {
 		final JSONObject myResponse = response;
-		this.context.runOnUiThread(new Runnable() {
+		this.activity.runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
 				onUiResponse(myResponse);

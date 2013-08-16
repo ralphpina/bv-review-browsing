@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.json.JSONException;
 
@@ -22,12 +24,9 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.app.ListFragment;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
-import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewGroup.LayoutParams;
-import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -49,15 +48,11 @@ public class ProductActivity extends FragmentActivity {
      * The {@link ViewPager} that will host the section contents.
      */
     ViewPager mViewPager;
-    
-    static NavUtility navUtility = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_product);
-
-        navUtility = NavUtility.getInstanceOf(this);
         
         // Create the adapter that will return a fragment for each of the three
         // primary sections of the app.
@@ -77,6 +72,7 @@ public class ProductActivity extends FragmentActivity {
         super.onResume();
         
     }
+    
     
     /**
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
@@ -158,9 +154,12 @@ public class ProductActivity extends FragmentActivity {
         
         String imageUrl;
         private static Handler handler;
-        Bitmap bitmap;
+        Bitmap bitmap = null;
+        
+        NavUtility navUtility;
 
         public ProductDetailFragment() {
+            navUtility = NavUtility.getInstanceOf();
         }
 
         @SuppressLint("HandlerLeak")
@@ -182,14 +181,6 @@ public class ProductActivity extends FragmentActivity {
             
             imageView = (ImageView) rootView.findViewById(R.id.productImage);
             
-            Display  display = getActivity().getWindowManager().getDefaultDisplay();
-            int swidth = display.getWidth();
-
-            LayoutParams params = imageView.getLayoutParams();
-            params.width = LayoutParams.FILL_PARENT;
-            params.height = swidth ;
-            imageView.setLayoutParams(params);
-            
             productName  = (TextView) rootView.findViewById(R.id.productName);
             brandName = (TextView) rootView.findViewById(R.id.productBrand);
             productPrice = (TextView) rootView.findViewById(R.id.productPrice);
@@ -205,7 +196,11 @@ public class ProductActivity extends FragmentActivity {
                 e.printStackTrace();
             }
             
-            loadImage();
+            if (bitmap == null) {
+                loadImage();
+             } else {
+                 handler.sendEmptyMessage(0);
+             }
             
             return rootView;
         }
@@ -231,34 +226,69 @@ public class ProductActivity extends FragmentActivity {
         }       
     }
     
-    public static class ProductReviewsFragment extends ListFragment {
+    public static class ProductReviewsFragment extends ListFragment implements NetworkListener {
         /**
          * The fragment argument representing the section number for this
          * fragment.
          */
         
         Context context;
-
-        public ProductReviewsFragment() {
+        public View mheaderView;
+        ReviewAdapter adapter;
+        ArrayList<HashMap<String, String>> reviewData;
+        NavUtility navUtility;
+        
+        public ProductReviewsFragment() {       
+            navUtility = NavUtility.getInstanceOf();
+            reviewData = new ArrayList<HashMap<String,String>>();
         }
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
+            
+            mheaderView = inflater.inflate(R.layout.fragment_product_reviews, null);
+            
+            return super.onCreateView(inflater, container, savedInstanceState);          
+        }
 
+        @Override
+        public void onActivityCreated(Bundle savedInstanceState) {
             
-            String[] values = new String[] { "Review 1", "Review 2", "Review 2",
-                "Review 3", "Review 4", "Review 5", "Review 6", "Review 7",
-                "Review 8", "Review 9", "Review 10"};
+            navUtility.getReviews(navUtility.bvNodeMap.get(getArguments().getString("idClicked")), this);
             
-            ArrayAdapter<String> adapter = new ArrayAdapter<String>(inflater.getContext(), android.R.layout.simple_list_item_1, values);
+            if (mheaderView != null) {
+                this.getListView().addHeaderView(mheaderView);
+            }
             
+            super.onActivityCreated(savedInstanceState);
+        }
+        
+        /*
+         * this gets called after the reviews are pulled and fills in the data
+         */
+        @Override
+        public void networkTransactionDone(BVNode product) {     
+            for (BVNode review : product.getChildren()) {
+                HashMap<String, String> map = new HashMap<String, String>();
+                
+                try {
+                    map.put(NavUtility.REVIEW_RATING, review.getData().getString(NavUtility.REVIEW_RATING));
+                    map.put(NavUtility.REVIEW_USER_NICKNAME, review.getData().getString(NavUtility.REVIEW_USER_NICKNAME));
+                    map.put(NavUtility.REVIEW_TEXT, review.getData().getString(NavUtility.REVIEW_TEXT));
+                    map.put(NavUtility.REVIEW_SUBMISSION_TIME, review.getData().getString(NavUtility.REVIEW_SUBMISSION_TIME));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                
+                // adding HashMap to ArrayList
+                reviewData.add(map);
+            }
+            
+            adapter = new ReviewAdapter(this, reviewData);
+             
             /** Setting the list adapter for the ListFragment */
             setListAdapter(adapter);
-     
-            return super.onCreateView(inflater, container, savedInstanceState);
-
-           
         }
     }
     
@@ -289,9 +319,7 @@ public class ProductActivity extends FragmentActivity {
                 context = getActivity().getApplicationContext();
      
                 return rootView;
-        }
-        
-        
+        }       
 
     }
 

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="5dip" >
+ 
+    <!--  RatingBar on top -->  
+    <RatingBar
+        android:id="@+id/reviewRatingBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxHeight="16dp"
+        android:minHeight="16dp"
+        android:numStars="@integer/number_review_stars"
+        android:progressDrawable="@drawable/custom_ratingbar_selector"
+        style="?android:attr/ratingBarStyleIndicator" />
+ 
+    
+    <!-- Title Of Song-->
+
+    <TextView
+        android:id="@+id/userNickname"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/reviewRatingBar"
+        android:layout_toRightOf="@+id/reviewRatingBar"
+        android:paddingRight="15dp"
+        android:text="userNickname"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:typeface="sans" />
+ 
+    <!-- Artist Name -->
+    <TextView
+        android:id="@+id/reviewText"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/userNickname"
+        android:textColor="#379BF7"
+        android:textSize="13sp"
+        android:layout_marginTop="1dip"
+        android:maxLines="3"
+        android:text="Review text goes here, it should do something when things wrap, maybe limit it to two rows, we'll see how this thing turns out." />
+ 
+    <!-- Rightend Duration -->
+    <TextView
+        android:id="@+id/reviewSubmissionTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignTop="@id/userNickname"
+        android:gravity="right"
+        android:text="5/5/12"
+        android:layout_marginRight="5dip"
+        android:textSize="10sp"
+        android:textColor="#10bcc9"
+        android:textStyle="bold"/>
+
+    
+ 
+</RelativeLayout>

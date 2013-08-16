@@ -17,7 +17,6 @@ import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.bazaarvoice.types.RequestType;
 
@@ -49,6 +48,10 @@ public class MainActivity extends Activity implements NetworkListener {
 	 * transactions to pull down
 	 */
 	private int numberOfChildrenToPull;
+	/*
+	 * To pass activity inside the anonymous inner methods
+	 */
+	private Activity thisActivity = this;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -57,14 +60,13 @@ public class MainActivity extends Activity implements NetworkListener {
 		
 		linearLayoutMain = (LinearLayout) findViewById(R.id.linearLayout);
 		
-		navUtility = NavUtility.getInstanceOf(this);
+		navUtility = NavUtility.getInstanceOf();
 		
 		/*
 		 * Get the top categories
 		 */
 		navUtility.productTree.setCurrentNode(null);
-		navUtility.getChildren(null);
-		
+		navUtility.getChildren(null, this);	
 	}
 	
 	@Override
@@ -117,7 +119,7 @@ public class MainActivity extends Activity implements NetworkListener {
                 if (parent.getChildren().size() > 0) {
                     displayCategories();
                 } else {
-                    navUtility.getChildren(parent);
+                    navUtility.getChildren(parent, this);
                 }
     	    }
 	    }
@@ -127,18 +129,16 @@ public class MainActivity extends Activity implements NetworkListener {
 	public void networkTransactionDone(BVNode itemPulled) {		
 		if (doAnotherTransaction) {		
 			numberOfChildrenToPull = itemPulled.getChildren().size();
-			Log.e(TAG, "numberOfChildrenToPull first = " + (numberOfChildrenToPull));
 			
 			for (BVNode child : itemPulled.getChildren()) {		
 				/*
 				 * Get first row of subcategories
 				 */
-				navUtility.getChildren(child);
+				navUtility.getChildren(child, this);
 			}
 			
 			doAnotherTransaction = false;
 		} else {
-			Log.e(TAG, "numberOfChildrenToPull last = " + (numberOfChildrenToPull));
 			if (--numberOfChildrenToPull <= 0) {
 				displayCategories();
 			}
@@ -222,14 +222,24 @@ public class MainActivity extends Activity implements NetworkListener {
             					@Override
             					public void onClick(View v) {
             					    BVNode itemSelected = navUtility.bvNodeMap.get(idClicked);
-            						Toast.makeText(v.getContext(), "On click = " + idClicked, Toast.LENGTH_SHORT).show();
+            						try {
+                                        Log.i(TAG, "On click = " + idClicked + " name = " + itemSelected.getData().getString("Name"));
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
             						doAnotherTransaction = true;
             						navUtility.productTree.setCurrentNode(itemSelected);
-            						if (itemSelected.getChildren().size() > 0) {
-            		                    displayCategories();
-            		                } else {
-            		                    navUtility.getChildren(itemSelected);
-            		                }         
+            						if (itemSelected.getTypeForNode() == RequestType.CATEGORIES) {
+                						if (itemSelected.getChildren().size() > 0) {
+                		                    displayCategories();
+                		                } else {
+                		                    navUtility.getChildren(itemSelected, thisActivity);
+                		                }     
+            						} else {
+                                        Intent goToProduct = new Intent(thisActivity, ProductActivity.class);
+                                        goToProduct.putExtra("idClicked", idClicked);
+                                        startActivity(goToProduct);
+            						}
             					}
             				});
             				frameLayoutItem.addView(textViewCategoryName);
@@ -277,7 +287,7 @@ public class MainActivity extends Activity implements NetworkListener {
                                         BVNode itemSelected = navUtility.bvNodeMap.get(idClicked);
                                         doAnotherTransaction = true;
                                         navUtility.productTree.setCurrentNode(itemSelected);
-                                        Intent goToProduct = new Intent(navUtility.activity, ProductActivity.class);
+                                        Intent goToProduct = new Intent(thisActivity, ProductActivity.class);
                                         goToProduct.putExtra("idClicked", idClicked);
                                         startActivity(goToProduct);
                                     }

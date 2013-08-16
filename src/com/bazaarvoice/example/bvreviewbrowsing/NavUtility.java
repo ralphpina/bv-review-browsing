@@ -12,8 +12,11 @@ import android.util.Log;
 
 import com.bazaarvoice.BazaarRequest;
 import com.bazaarvoice.DisplayParams;
+import com.bazaarvoice.example.bvreviewbrowsing.ProductActivity.ProductReviewsFragment;
 import com.bazaarvoice.types.ApiVersion;
 import com.bazaarvoice.types.Equality;
+import com.bazaarvoice.types.IncludeStatsType;
+import com.bazaarvoice.types.IncludeType;
 import com.bazaarvoice.types.RequestType;
 
 public class NavUtility {
@@ -30,9 +33,13 @@ public class NavUtility {
 	private static final String PASSKEY = "ax58agxc5oibip1dlzft2ej3f";
 	private static final ApiVersion API_VERSION = ApiVersion.FIVE_FOUR;
 	
-	public final String CATEGORIES_IN_ACTIVITY = "categories_in_activity";
-	public final String PRODUCT_TO_DISPLAY = "product_to_display";
+	public static final String CATEGORIES_IN_ACTIVITY = "categories_in_activity";
+	public static final String PRODUCT_TO_DISPLAY = "product_to_display";
 	
+	public static final String REVIEW_RATING = "Rating";
+    public static final String REVIEW_USER_NICKNAME = "UserNickname";
+    public static final String REVIEW_TEXT = "ReviewText";
+    public static final String REVIEW_SUBMISSION_TIME = "SubmissionTime";
 	
 	/*
 	 * A tree for all categories products and reviews in the current activity
@@ -72,11 +79,6 @@ public class NavUtility {
 	 * Keeps track of the levels of the tree for the one recursive function
 	 */
 	public int levelsToPull;
-		
-	/*
-	 * Current activity context
-	 */
-	Activity activity;
 	
 	
 	/*
@@ -84,11 +86,10 @@ public class NavUtility {
 	 */
 	private static NavUtility navUtility;
 	
-	public static NavUtility getInstanceOf(Activity activity) {
+	public static NavUtility getInstanceOf() {
 		if (navUtility == null) {
 			navUtility = new NavUtility();
 		}
-		navUtility.activity = activity;
 		return navUtility;
 	}
 	
@@ -101,7 +102,12 @@ public class NavUtility {
 	}
 	
 	
-	public void getChildren(BVNode parent) {
+	public void getChildren(BVNode parent, Activity activity) {
+	    
+        /*
+         * The activity making this request
+         */
+	    final Activity activityListener = activity;
 		/*
 		 * Used to make the API calls
 		 */
@@ -164,39 +170,40 @@ public class NavUtility {
 			 */
 			params.setLimit(10);
 			/*
-			 * I am using the total questions and is active as a proxy for the more popular categories.
-			 */
+             * I am using the total questions and is active as a proxy for the more popular categories.
+             */
 			params.addSort("TotalQuestionCount", false);
-			params.addFilter("isActive", Equality.EQUAL, "true");
+	        params.addFilter("isActive", Equality.EQUAL, "true");
 			params.addFilter("ParentId", Equality.EQUAL, Id);
 			
 		} else if (requestItemType == RequestType.PRODUCTS) {
 			/*
 			 * I will only deal with the top 100 products to begin
 			 */
-			params.setLimit(batchSize);
+			params.setLimit(batchSize);		
 			/*
-			 * I am using the total reviews and is active as a proxy for the more popular products.
-			 */
-			params.addSort("TotalReviewCount", false);
-			params.addFilter("isActive", Equality.EQUAL, "true");	
-			params.addFilter("CategoryId", Equality.EQUAL, Id);
-			
+             * I am using the total reviews and is active as a proxy for the more popular products.
+             */
+            params.addSort("TotalReviewCount", false);
+            params.addFilter("isActive", Equality.EQUAL, "true");   
+            params.addFilter("CategoryId", Equality.EQUAL, Id);
+          //params.addFilter("TotalReviewCount", Equality.GREATER_THAN, "10");
+            
 		} else { //we are getting reviews!
-			/*
-			 * I will only deal with the top 100 reviews to begin
-			 */
-			params.setLimit(batchSize);
-			/*
-			 * I am using the total reviews and is active as a proxy for the more popular products.
-			 */
-			params.addSort("TotalCommentCount", false);
-		}
+            /*
+             * I will only deal with the top 100 reviews to begin
+             */
+            params.setLimit(batchSize);
+            /*
+             * I am using the total reviews and is active as a proxy for the more popular products.
+             */
+            params.addSort("TotalCommentCount", false);
+        } 
 		
 		/*
 		 * send the request and process the response
 		 */
-		request.sendDisplayRequest(requestItemType, params, new BazaarUIThreadResponse(activity) {
+		request.sendDisplayRequest(requestItemType, params, new BazaarUIThreadResponse(activityListener) {
 			
 			@Override
 			public void onUiResponse(JSONObject response) {
@@ -204,13 +211,8 @@ public class NavUtility {
 			    BVNode parent = null;
 			    
 				try {
-					/*
-					if (initialItemCount == 0) {
-						initialItemCount = response.getInt("TotalResults");
-					}
-					*/
+				    
 					itemsToProcess = response.getJSONArray("Results");
-					Log.e(TAG, "itemsToProcess = " + itemsToProcess);
 						
 					if (itemsToProcess.length() > 0) {
     					// If the type for the children is not set, then check the parent of the first
@@ -258,28 +260,111 @@ public class NavUtility {
     				    parent = productTree.getActiveNode();
     				    if (parent != null) {
         				    parent.setTypeForChildren(RequestType.PRODUCTS);
-        				    getChildren(parent);
+        				    getChildren(parent, activityListener);
     				    }
     				}
 		
 				} catch (JSONException e1) {
 					e1.printStackTrace();
 				} finally {
-				    ((NetworkListener) activity).networkTransactionDone(parent);
+				    ((NetworkListener) activityListener).networkTransactionDone(parent);
 				}
 			}
 		});	
 	}
 	
+	
+	public void getReviews(BVNode productToGetReviews, ProductReviewsFragment productReviewsFragment) {
+        
+	    final BVNode product = productToGetReviews;
+        /*
+         * The activity making this request
+         */
+        final ProductReviewsFragment activityListener = productReviewsFragment;
+	    /*
+         * Used to make the API calls
+         */
+        BazaarRequest request;
+        DisplayParams params;
+        /*
+         * BazaarRequest will be used to make our API calls. The parameters are set in the BVReviewBrowsingApplication class
+         */
+        request = new BazaarRequest(DOMAIN, PASSKEY, API_VERSION);
+        
+        /*
+         * Get all the top child categories
+         */
+        params = new DisplayParams();
+        
+        /*
+         * Id of the products whose reviews I will be pulling down
+         */
+        String productID = null;
+        
+        try {
+            productID = product.getData().getString("Id");
+        } catch (Exception e) {
+            Log.e(TAG, "The current node has no ID?!?!?");
+            productID = "null";
+            e.printStackTrace();
+        }
+        
+        params.addFilter("ProductId", Equality.EQUAL, productID);
+        params.addInclude(IncludeType.PRODUCTS);
+        params.addStats(IncludeStatsType.REVIEWS);
+        params.addSort("Helpfulness", false);    
+        params.setLimit(batchSize);
+        
+        request.sendDisplayRequest(RequestType.REVIEWS, params, new BazaarUIThreadResponse(activityListener.getActivity()) {
+            @Override
+            public void onUiResponse(JSONObject response) {
+                
+                try {
+                    
+                    itemsToProcess = response.getJSONArray("Results");
+                        
+                    Log.e(TAG, "itemsToProcess.length() = " + itemsToProcess.length());
+                    
+                    if (itemsToProcess.length() > 0) {
+                                                      
+                        product.setTypeForChildren(RequestType.REVIEWS);
+                        
+                        for (int i = 0; i < itemsToProcess.length(); i++) {
+                            
+                            // I am going to assume the item appears in the tree only once 
+                            // if it is showing up twice it is because the same network transaction was
+                            // done twice
+                            if (!itemFoundInTree(itemsToProcess.getJSONObject(i).getString("Id"))) {
+                                //make a node if the current JSONObject
+                                BVNode newReview = new BVNode(itemsToProcess.getJSONObject(i), product, RequestType.REVIEWS);
+                                //reviews don't have children, so lets null that
+                                newReview.setChildren(null);
+                                //add the current node to the 
+                                product.addChild(newReview);
+                                addItemToMap(newReview);                      
+                            }
+                        }
+                    } 
+                } catch (JSONException e1) {
+                    e1.printStackTrace();
+                } finally {
+                    Log.e(TAG, "product.getChildren() = " + product.getChildren());
+                    ((NetworkListener) activityListener).networkTransactionDone(product);
+                }
+                
+            }
+        });     
+	}
+	
 	private boolean itemFoundInTree(String id) {
-	    return bvNodeMap.containsKey(id);
-	}
-	
-	private BVNode getParentByID(String id) {
-		return bvNodeMap.get(id);
-	}
-	
-	private void addItemToMap(BVNode item) {
+        return bvNodeMap.containsKey(id);
+    }
+    
+    private BVNode getParentByID(String id) {
+        return bvNodeMap.get(id);
+    }
+    
+    private void addItemToMap(BVNode item) {
         try {
             bvNodeMap.put(item.getData().getString("Id"), item);
         } catch (JSONException e) {

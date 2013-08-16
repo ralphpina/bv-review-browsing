@@ -14,4 +14,5 @@
     <string name="ramText">ram placeholder</string>
     <string name="hdText">hd placeholder</string>
     <string name="myheader">myHeader</string>
+    <string name="main_product_image">main product image</string>
 </resources>
